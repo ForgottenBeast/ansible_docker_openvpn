@@ -20,6 +20,8 @@ VPN_SERVER: "platformurl.xyz"
 
 VPN_BACKUP_FILE: "vpnbk.tar.bz2"
 
+VPN_IP: "192.168.0.1"
+
 #list of client names to revoke
 REVOKE_LIST: []
 

@@ -30,7 +30,7 @@
     privileged: True
     image: "{{ OVPN_DOCKER_IMAGE }}"
     ports:
-      - "{{ PORT.number }}:1194/{{ PORT.proto }}"
+        - "{{ VPN_IP }}:{{ PORT.number }}:1194/{{ PORT.proto }}"
     restart_policy: always
     volumes:
       - "{{ OVPN_DATA }}:/etc/openvpn"
