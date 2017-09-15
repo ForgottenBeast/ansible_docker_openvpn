@@ -11,7 +11,7 @@
   when: item.value != None and
         "'ip' in item.value"
   command: docker run -v {{ OVPN_DATA }}:/vpn --rm -i {{ alpine_image }} \
-      echo "ifconfig-push {{ item.value.ip }} {{ VPN_NETWORK.mask }}" >> /vpn/ccd/{{ item.key }}
+      ash -c 'echo "ifconfig-push {{ item.value.ip }} {{ VPN_NETWORK.mask }}" >> /vpn/ccd/{{ item.key }}'
 
 - { include: vpn_backup.yml, tags: ['vpn_backup'], become: True }
 
