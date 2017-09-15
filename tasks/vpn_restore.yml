@@ -1,0 +1,29 @@
+- name: "Copy backup data to remote host"
+  copy:
+    src: "{{ VPN_BACKUP_FILE }}"
+    dest: /tmp/{{ VPN_BACKUP_FILE }}
+
+- name: "Check if vpn container is running"
+  command: docker inspect {{ VPN_SERVICE_NAME }} 
+  register: vpnrunning
+  ignore_errors: True
+
+- name: "Stop vpn server"
+  docker_container:
+    name: "{{ VPN_SERVICE_NAME }}"
+    state: absent
+  when: vpnrunning | success
+
+- name: "restoring vpn data"
+  shell: |
+    docker run --rm -i -v {{ OVPN_DATA }}:/volume -v /tmp:/backup:ro {{ alpine_image }} \
+        sh -c "\
+        apk update;\
+        apk add -y tar;\
+        rm -rf /volume/* ;\
+        tar -C /volume/ -xjf /backup/{{ VPN_BACKUP_FILE }}"
+
+- name: "Remove backup data"
+  file:
+    name: /tmp/{{ VPN_BACKUP_FILE }}
+    state: absent

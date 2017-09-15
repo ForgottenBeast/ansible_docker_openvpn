@@ -1,0 +1,45 @@
+- name: "generate client certificate"
+  ignore_errors: True
+  register: result
+  expect:
+    command: docker run -v {{ OVPN_DATA }}:/etc/openvpn --rm -i {{ OVPN_DOCKER_IMAGE }} easyrsa build-client-full {{ item.key }} nopass
+    timeout: 180
+    responses:
+      "pass phrase": "{{PKI_PASSWORD}}"
+
+- name: "Add client IP to ccd"
+  when: item.value != None and
+        "'ip' in item.value"
+  command: docker run -v {{ OVPN_DATA }}:/vpn --rm -i {{ alpine_image }} \
+      echo "ifconfig-push {{ item.value.ip }} {{ VPN_NETWORK.mask }}" >> /vpn/ccd/{{ item.key }}
+
+- { include: vpn_backup.yml, tags: ['vpn_backup'], become: True }
+
+- name: "Generate client conf file"
+  tags: vpn_getcert
+  shell: |
+    docker run -v {{ OVPN_DATA }}:/etc/openvpn --rm {{ OVPN_DOCKER_IMAGE }}\
+        ovpn_getclient {{ item.key }} > /tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{ item.key }}.ovpn
+
+- name: "Prepare regex for conf file"
+  set_fact:
+    regex: 's/remote {{ VPN_SERVER }} 1194 \(udp\|tcp\)/remote {{ VPN_SERVER }} {{ PORT.number }} {{ PORT.proto }}/g'
+
+- name: "Fix client conf file port"
+  tags: vpn_getcert
+  shell: |
+      sed -i -e '{{ regex }}' /tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{ item.key }}.ovpn
+  when: PORT.number != 1194 or
+        PORT.proto != "udp"
+
+- name: "Retrieve certificate"
+  tags: vpn_getcert
+  fetch:
+    flat: True
+    src: "/tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{ item.key }}.ovpn"
+    dest: "{{ playbook_dir }}/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{ item.key }}.ovpn"
+
+- name: "Delete certificates"
+  tags: vpn_getcert
+  file:
+    name: "/tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{ item.key }}.ovpn"

@@ -1,0 +1,32 @@
+OVPN_DOCKER_IMAGE: "forgottenbeast/vpn:multiarch"
+OVPN_DATA: "vpn_data"
+PKI_PASSWORD: "default_pki_password" #used for pem AND CA Key
+COMMON_NAME: "default_common_name"
+VPN_SERVICE_NAME: "vpnd"
+
+VPN_NETWORK:
+  subnet: "192.168.255.0"
+  mask: "255.255.255.0"
+
+#should clients be able to talk to each other?
+CLIENT_TO_CLIENT: True
+
+#external vpn port
+PORT:
+  number: 443
+  proto: "tcp"
+
+VPN_SERVER: "platformurl.xyz"
+
+VPN_BACKUP_FILE: "vpnbk.tar.bz2"
+
+#list of client names to revoke
+REVOKE_LIST: []
+
+#list of client names for gencert
+#first ip is used by vpn server
+CLIENTS:
+  tata:
+    ip: "192.168.10.101"
+  #entry can be empty if you just want a client without specific ip
+  toto:

@@ -1,0 +1,2 @@
+- name: "Revoking {{ item }} certificate"
+  command: docker run --rm -it -v {{ OVPN_DATA }}:/etc/openvpn {{ OVPN_DOCKER_IMAGE }} ovpn_revokeclient {{ item }}

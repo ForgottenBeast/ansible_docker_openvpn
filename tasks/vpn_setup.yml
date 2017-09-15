@@ -1,0 +1,39 @@
+- name: "generate vpn config"
+  command: docker run -v {{ OVPN_DATA }}:/etc/openvpn --rm {{ OVPN_DOCKER_IMAGE }} \
+       ovpn_genconfig -u {{ PORT.proto }}://{{ VPN_SERVER }}
+
+- name: "Fix push options in openvpn.conf"
+  command: docker run -v {{ OVPN_DATA }}:/vpn --rm {{ alpine_image }}  sed -i -e 's/push \(dhcp-option DNS \([[:digit:]]\.\)\+[[:digit:]]\)/push "\1"/g' /vpn/openvpn.conf
+
+- name: "Add client to client capabilities"
+  when: CLIENT_TO_CLIENT == True
+  command: |
+      docker run -v {{ OVPN_DATA }}:/vpn --rm {{ alpine_image }} ash -c "\
+        echo 'client-to-client' >> /vpn/openvpn.conf"
+
+- name: "Change vpn network"
+  when: VPN_NETWORK.subnet != "192.168.255.0" or
+        VPN_NETWORK.mask != "255.255.255.0"
+  command: docker run -v {{ OVPN_DATA }}:/vpn --rm {{ alpine_image }}  sed -i -e 's/192.168.255.0 255.255.255.0/{{ VPN_NETWORK.subnet}} {{ VPN_NETWORK.mask }}/g' /vpn/openvpn.conf
+
+- name: "Change proto"
+  when: PORT.proto == "tcp"
+  command: |
+      docker run -v {{ OVPN_DATA }}:/vpn --rm {{ alpine_image }} \
+        sed -i -e 's/proto udp/proto tcp/g' /vpn/openvpn.conf
+
+- name: "Add client config dir"
+  command: |
+    docker run -v {{ OVPN_DATA }}:/vpn --rm {{ alpine_image }} ash -c "\
+      mkdir -p /vpn/ccd;\
+      echo 'client-config-dir /etc/openvpn/ccd' >> /vpn/openvpn.conf "
+
+- name: "generate PKI, this could take a few minutes..."
+  expect:
+    command: docker run -v {{ OVPN_DATA }}:/etc/openvpn --rm -i {{ OVPN_DOCKER_IMAGE }} ovpn_initpki
+    timeout: 3600
+    responses:
+      "pass phrase": "{{ PKI_PASSWORD }}"
+      "Common Name": "{{ COMMON_NAME }}"
+      "Confirm Removal": "No"
+      "Type the word 'yes'": "No"

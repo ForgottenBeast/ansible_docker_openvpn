@@ -1,0 +1,55 @@
+- include: requirements.yml
+  become: True
+  tags:
+    - vpn_install
+    - vpn_volume
+
+- include: volume.yml
+  become: True
+  tags:
+    - vpn_install
+    - vpn_volume
+
+- { include: vpn_setup.yml, tags: ['vpn_install'], become: True }
+
+- name: "Generating certs"
+  include: vpn_gencert.yml
+  tags: ['vpn_gencert']
+  become: True 
+  with_dict: "{{ CLIENTS }}"
+
+- { include: vpn_restore.yml, tags: ['vpn_restore'], become: True }
+
+- name: "Start vpn container"
+  tags:
+    - vpn_deploy
+    - vpn_restore
+  become: True
+  docker_container:
+    name: "{{ VPN_SERVICE_NAME }}"
+    privileged: True
+    image: "{{ OVPN_DOCKER_IMAGE }}"
+    ports:
+      - "{{ PORT.number }}:1194/{{ PORT.proto }}"
+    restart_policy: always
+    volumes:
+      - "{{ OVPN_DATA }}:/etc/openvpn"
+    devices:
+      - "/dev/net/tun:/dev/net/tun"
+
+- include: vpn_revoke.yml
+  tags: vpn_revoke
+  become: True
+  with_items: "{{ REVOKE_LIST }}"
+
+- name: "Retrieving vpn client list"
+  become: True
+  tags: vpn_list_clients
+  command: docker exec -i {{ VPN_SERVICE_NAME }} ovpn_listclients
+  register: clients
+
+- name: "Listing vpn clients"
+  debug:
+    msg: "{{ item }}"
+  with_items: "{{ clients.stdout }}"
+  tags: vpn_list_clients

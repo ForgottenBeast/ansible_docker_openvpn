@@ -1,0 +1,16 @@
+- name: "backup vpn data"
+  shell: |
+    docker run --rm -i -v {{ OVPN_DATA }}:/volume:ro -v /tmp:/backup {{ alpine_image }} \
+       tar -cjf /backup/vpn_backup_{{ inventory_hostname }}_{{ ansible_date_time.date }}.tar.bz2 -C /volume ./
+
+- name: "retrieve backup"
+  fetch:
+    flat: True
+    src: "/tmp/vpn_backup_{{ inventory_hostname }}_{{ ansible_date_time.date }}.tar.bz2"
+    dest: "{{ playbook_dir }}/vpn_backup_{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{ ansible_date_time.date }}.bz2"
+
+- name: "Clean up backup file"
+  file:
+    name: /tmp/vpn_backup_{{ inventory_hostname }}_{{ ansible_date_time.date }}.bz2"
+    state: absent
+

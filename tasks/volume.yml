@@ -1,0 +1,9 @@
+- name: "check if {{ OVPN_DATA }} exists"
+  command: docker volume inspect {{ OVPN_DATA }}
+  register: myvolume_exists
+  failed_when: false
+
+- name: "create {{ OVPN_DATA }}"
+  command: docker volume create --name {{ OVPN_DATA }}
+  when: myvolume_exists|failed
+
