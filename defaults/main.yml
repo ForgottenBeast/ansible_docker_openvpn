@@ -15,6 +15,7 @@ CLIENT_TO_CLIENT: True
 PORT:
   number: 443
   proto: "tcp"
+  IP: "192.168.200.2"
 
 VPN_SERVER: "platformurl.xyz"
 
