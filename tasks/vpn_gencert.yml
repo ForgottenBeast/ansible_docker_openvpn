@@ -32,6 +32,13 @@
   when: PORT.number != 1194 or
         PORT.proto != "udp"
 
+- name: "Add vpnfailsafe entry"
+  tags: vpn_getcert
+  shell: |
+      echo "script-security 2" >> /tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{item.key}}.ovpn
+      echo "up /etc/openvpn/vpnfailsafe.sh" >> /tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{item.key}}.ovpn
+      echo "down /etc/openvpn/vpnfailsafe.sh" >> /tmp/{{ inventory_hostname }}_{{ VPN_SERVICE_NAME }}_{{item.key}}.ovpn
+
 - name: "Retrieve certificate"
   tags: vpn_getcert
   fetch:
